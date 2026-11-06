@@ -38,12 +38,14 @@ Scaffolded 2026-11-06 (see [context/decisions.md](context/decisions.md)):
 `onboarding.FirstLoginListener` (first-login detection, mirrors Kyt's own `WelcomeListener` pattern
 but deliberately as a separate attachment) spawns a fresh, private `WelcomeTutorial` TinyWyrld
 entrance directly on a brand-new player at their true first login. `./gradlew build` green
-standalone. **Phase 2 built the same day** — `tutorial.TutorialGuideEntity` (a real `Villager` subclass that
-keeps real pathfinding navigation, unlike Myssions' own `QuestNpcEntity`), `tutorial.TutorialScript`
-(6 hand-authored stages with real relative walk offsets derived from the captured Entrance's own
-marker positions), and TTS via Nuclyus's new facade (`api.Nuclyus#speak`) played back locally via
-`javax.sound.sampled.Clip` — deliberately not through Audyble's positional SVC pipeline, since the
-tutorial Wyrld is always private to exactly one player. `./gradlew build` green standalone.
+standalone. **Phase 2 built, then rebuilt the same day** — the original version was a hand-scripted,
+right-click-advanced NPC speaking via Nuclyus's TTS facade directly, deliberately bypassing Audyble.
+**Rebuilt per explicit user direction** after live-testing: `tutorial.TutorialGuideEntity` is now a
+real conversational NPC through Audyble's own pipeline (`api.Audyble#bindConversationalNpc`, a
+bullet-point topic checklist as its system prompt rather than verbatim lines), with a new
+`/audyble say` text-chat fallback (Audyble's own feature, for a player without a working
+microphone) that never broadcasts to public chat. Arryval is now `required`-dependent on Audyble
+too. `./gradlew build` green across the whole suite.
 
 **Phases 3-4 built the same day** — TinyWyrlds gained a new generic exit-intercept hook (see its own
 CLAUDE.md); this mod's new `starttown` package resolves up to 8 real settlements nearest world

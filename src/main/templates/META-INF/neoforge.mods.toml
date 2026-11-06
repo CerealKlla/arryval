@@ -68,3 +68,12 @@ world origin.
     reason="Binds the new player's Recallcinite Totem to the assigned starting plot."
     ordering="AFTER"
     side="BOTH"
+
+# Audyble -- the tutorial guide is a real conversational NPC through Audyble's own
+# Whisper->Ollama->Kokoro pipeline.
+[[dependencies.${mod_id}]]
+    modId="audyble"
+    type="required"
+    reason="The tutorial guide is a real conversational NPC through Audyble's own pipeline."
+    ordering="AFTER"
+    side="BOTH"

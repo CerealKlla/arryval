@@ -1,6 +1,5 @@
 package com.github.cerealklla.arryval;
 
-import com.github.cerealklla.arryval.config.ArryvalConfig;
 import com.github.cerealklla.arryval.onboarding.FirstLoginListener;
 import com.github.cerealklla.arryval.registration.ModAttachments;
 import com.github.cerealklla.arryval.registration.ModEntities;
@@ -9,9 +8,7 @@ import com.github.cerealklla.arryval.starttown.OpenStartingSettlementPickerPaylo
 import com.github.cerealklla.arryval.starttown.PendingOnboarding;
 import com.github.cerealklla.arryval.starttown.SetStartingSettlementPayload;
 import com.github.cerealklla.arryval.starttown.StartingSettlementResolver;
-import com.github.cerealklla.arryval.tts.TutorialVoicePayload;
 import com.github.cerealklla.arryval.tutorial.TutorialGuideEntity;
-import com.github.cerealklla.arryval.tutorial.TutorialGuideInteractListener;
 import com.github.cerealklla.lyfe.api.Lyfe;
 import com.github.cerealklla.settlemynts.api.Settlemynts;
 import com.github.cerealklla.tinywyrlds.api.TinyWyrlds;
@@ -23,7 +20,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -40,14 +36,11 @@ public class ArryvalMod {
         ModAttachments.ATTACHMENT_TYPES.register(modEventBus);
         ModEntities.ENTITIES.register(modEventBus);
 
-        modContainer.registerConfig(ModConfig.Type.SERVER, ArryvalConfig.SPEC);
-
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerAttributes);
         modEventBus.addListener(this::registerPayloads);
 
         NeoForge.EVENT_BUS.register(new FirstLoginListener());
-        NeoForge.EVENT_BUS.register(new TutorialGuideInteractListener());
         TinyWyrlds.registerExitHandler(new OnboardingExitHandler());
     }
 
@@ -61,8 +54,6 @@ public class ArryvalMod {
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar("1");
-        registrar.playToClient(TutorialVoicePayload.TYPE, TutorialVoicePayload.STREAM_CODEC,
-                (payload, context) -> com.github.cerealklla.arryval.tts.client.ClientTutorialVoicePlayer.play(payload));
         registrar.playToClient(OpenStartingSettlementPickerPayload.TYPE, OpenStartingSettlementPickerPayload.STREAM_CODEC,
                 (payload, context) -> com.github.cerealklla.arryval.starttown.client.ClientStartTownRequests.requestPicker(payload));
         registrar.playToServer(SetStartingSettlementPayload.TYPE, SetStartingSettlementPayload.STREAM_CODEC,

@@ -111,6 +111,12 @@ dependencies {
     testCompileOnly files("../Lyfe/build/libs/lyfe-${lyfe_version}.jar")
     testRuntimeOnly files("../Lyfe/build/libs/lyfe-${lyfe_version}.jar")
 
+    // Audyble is required -- the tutorial guide is a real conversational NPC through Audyble's own
+    // Whisper->Ollama->Kokoro pipeline (explicit user direction, 2026-11-06), not a hand-scripted one.
+    compileOnly files("../Audyble/build/libs/audyble-${audyble_version}.jar")
+    testCompileOnly files("../Audyble/build/libs/audyble-${audyble_version}.jar")
+    testRuntimeOnly files("../Audyble/build/libs/audyble-${audyble_version}.jar")
+
     // Plain JUnit 5 for pure logic tests (no live server/registry needed, so ModDevGradle's
     // neoForge { unitTest {} } FML-bootstrap machinery isn't required for these).
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
