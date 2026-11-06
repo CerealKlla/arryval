@@ -1,6 +1,7 @@
 package com.github.cerealklla.arryval.tts.client;
 
 import java.io.ByteArrayInputStream;
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -24,8 +25,17 @@ public final class ClientTutorialVoicePlayer {
     public static void play(TutorialVoicePayload payload) {
         try {
             AudioInputStream stream = AudioSystem.getAudioInputStream(new ByteArrayInputStream(payload.wavBytes()));
+            // Real bug found live, 2026-11-06: Clip#open(AudioInputStream) sizes its internal buffer
+            // from stream.getFrameLength() * format.getFrameSize() -- for a real Kokoro-produced WAV
+            // this came back negative ("Audio data < 0"), not Kokoro itself being unreachable (a
+            // direct test call against the exact same request shape worked fine). Reading the whole
+            // stream into a byte array first and using Clip's explicit-buffer-size overload sidesteps
+            // that miscalculation entirely -- the real length is just data.length, no frame-length
+            // arithmetic involved.
+            byte[] data = stream.readAllBytes();
+            AudioFormat format = stream.getFormat();
             Clip clip = AudioSystem.getClip();
-            clip.open(stream);
+            clip.open(format, data, 0, data.length);
             clip.addLineListener(event -> {
                 if (event.getType() == LineEvent.Type.STOP) {
                     clip.close();
