@@ -8,8 +8,10 @@ import com.github.cerealklla.arryval.starttown.OpenStartingSettlementPickerPaylo
 import com.github.cerealklla.arryval.starttown.PendingOnboarding;
 import com.github.cerealklla.arryval.starttown.SetStartingSettlementPayload;
 import com.github.cerealklla.arryval.starttown.StartingSettlementResolver;
+import com.github.cerealklla.arryval.tutorial.TutorialChopListener;
 import com.github.cerealklla.arryval.tutorial.TutorialGuideEntity;
 import com.github.cerealklla.arryval.tutorial.TutorialQuests;
+import com.github.cerealklla.audyble.api.Audyble;
 import com.github.cerealklla.lyfe.api.Lyfe;
 import com.github.cerealklla.myssions.api.Myssions;
 import com.github.cerealklla.settlemynts.api.Settlemynts;
@@ -43,7 +45,10 @@ public class ArryvalMod {
         modEventBus.addListener(this::registerPayloads);
 
         NeoForge.EVENT_BUS.register(new FirstLoginListener());
+        NeoForge.EVENT_BUS.register(new TutorialChopListener());
         TinyWyrlds.registerExitHandler(new OnboardingExitHandler());
+        Audyble.registerReplyInterceptor((player, npc, transcript) ->
+                npc instanceof TutorialGuideEntity guide ? guide.handleIntercept(player, transcript) : java.util.Optional.empty());
     }
 
     private void commonSetup(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
