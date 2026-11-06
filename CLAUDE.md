@@ -38,8 +38,15 @@ Scaffolded 2026-11-06 (see [context/decisions.md](context/decisions.md)):
 `onboarding.FirstLoginListener` (first-login detection, mirrors Kyt's own `WelcomeListener` pattern
 but deliberately as a separate attachment) spawns a fresh, private `WelcomeTutorial` TinyWyrld
 entrance directly on a brand-new player at their true first login. `./gradlew build` green
-standalone. **Not yet live-tested** — needs the one-time Production setup commands run first (see
-decisions.md's "Pending" section), and Phases 2-4 (the tutorial NPC, the exit-portal hook +
-settlement picker, and the plot/Totem binding) are not built yet.
+standalone. **Phase 2 built the same day** — `tutorial.TutorialGuideEntity` (a real `Villager` subclass that
+keeps real pathfinding navigation, unlike Myssions' own `QuestNpcEntity`), `tutorial.TutorialScript`
+(6 hand-authored stages with real relative walk offsets derived from the captured Entrance's own
+marker positions), and TTS via Nuclyus's new facade (`api.Nuclyus#speak`) played back locally via
+`javax.sound.sampled.Clip` — deliberately not through Audyble's positional SVC pipeline, since the
+tutorial Wyrld is always private to exactly one player. `./gradlew build` green standalone.
+
+**Not yet live-tested** — needs the one-time Production setup commands run first (see
+decisions.md's "Pending" section), and Phases 3-4 (the exit-portal hook + settlement picker, and the
+plot/Totem binding) are not built yet.
 
 See [context/classes/](context/classes/) for per-class reference, once there is one.
