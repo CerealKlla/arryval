@@ -45,8 +45,14 @@ marker positions), and TTS via Nuclyus's new facade (`api.Nuclyus#speak`) played
 `javax.sound.sampled.Clip` — deliberately not through Audyble's positional SVC pipeline, since the
 tutorial Wyrld is always private to exactly one player. `./gradlew build` green standalone.
 
-**Not yet live-tested** — needs the one-time Production setup commands run first (see
-decisions.md's "Pending" section), and Phases 3-4 (the exit-portal hook + settlement picker, and the
-plot/Totem binding) are not built yet.
+**Phases 3-4 built the same day** — TinyWyrlds gained a new generic exit-intercept hook (see its own
+CLAUDE.md); this mod's new `starttown` package resolves up to 8 real settlements nearest world
+origin (gracefully skipping any not yet generated/founded or with no vacant plot), shows a picker
+screen (modeled on Settlemynts' own `SelectKytScreen`), and on pick assigns a vacant plot
+(`api.Settlemynts#assignPlotOwner`), binds the Recallcinite Totem (`api.Lyfe#bindRecallciniteTotem`),
+and teleports the player there for real. `./gradlew build` green across the whole suite.
+
+**Not yet live-tested at all** — needs the one-time Production setup commands run first (see
+decisions.md's "Pending" section) before any real playtest is even possible.
 
 See [context/classes/](context/classes/) for per-class reference, once there is one.

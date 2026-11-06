@@ -3,6 +3,7 @@ package com.github.cerealklla.arryval.onboarding;
 import java.util.UUID;
 
 import com.github.cerealklla.arryval.registration.ModAttachments;
+import com.github.cerealklla.arryval.starttown.PendingOnboarding;
 import com.github.cerealklla.tinywyrlds.api.TinyWyrlds;
 
 import net.minecraft.server.level.ServerLevel;
@@ -47,6 +48,7 @@ public final class FirstLoginListener {
         }
         player.setData(ModAttachments.TUTORIAL_GRANT_STATE, new TutorialGrantState(true));
 
+        PendingOnboarding.markAwaitingPick(serverPlayer.getUUID());
         ServerLevel level = (ServerLevel) serverPlayer.level();
         TinyWyrlds.spawnEntrance(level, serverPlayer.blockPosition(), UUID.randomUUID(), TUTORIAL_RECIPE_NAME, serverPlayer.getUUID());
     }
