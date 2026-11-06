@@ -117,6 +117,12 @@ dependencies {
     testCompileOnly files("../Audyble/build/libs/audyble-${audyble_version}.jar")
     testRuntimeOnly files("../Audyble/build/libs/audyble-${audyble_version}.jar")
 
+    // Myssions is required -- the tutorial assigns a real quest (gameplay mechanics as milestones,
+    // teaching "set active"/"accept" via a QuestChain follow-up), not just dialogue.
+    compileOnly files("../Myssions/build/libs/myssions-${myssions_version}.jar")
+    testCompileOnly files("../Myssions/build/libs/myssions-${myssions_version}.jar")
+    testRuntimeOnly files("../Myssions/build/libs/myssions-${myssions_version}.jar")
+
     // Plain JUnit 5 for pure logic tests (no live server/registry needed, so ModDevGradle's
     // neoForge { unitTest {} } FML-bootstrap machinery isn't required for these).
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'

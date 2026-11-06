@@ -22,6 +22,7 @@ public final class PendingOnboarding {
 
     private static final Set<UUID> AWAITING_PICK = ConcurrentHashMap.newKeySet();
     private static final Map<UUID, List<StartingSettlementResolver.Candidate>> RESOLVED_CANDIDATES = new ConcurrentHashMap<>();
+    private static final Map<UUID, UUID> WELCOME_QUEST_INSTANCE_IDS = new ConcurrentHashMap<>();
 
     private PendingOnboarding() {
     }
@@ -43,8 +44,18 @@ public final class PendingOnboarding {
         return RESOLVED_CANDIDATES.getOrDefault(playerId, List.of());
     }
 
+    /** The instance id of this player's own "Welcome to Kyngdoms" quest (assigned at first login, see {@code onboarding.FirstLoginListener}) -- tracked here since nothing else in Arryval needs to look it up by definition id the way a QuestChain follow-up does. */
+    public static void setWelcomeQuestInstanceId(UUID playerId, UUID instanceId) {
+        WELCOME_QUEST_INSTANCE_IDS.put(playerId, instanceId);
+    }
+
+    public static java.util.Optional<UUID> getWelcomeQuestInstanceId(UUID playerId) {
+        return java.util.Optional.ofNullable(WELCOME_QUEST_INSTANCE_IDS.get(playerId));
+    }
+
     public static void clear(UUID playerId) {
         AWAITING_PICK.remove(playerId);
         RESOLVED_CANDIDATES.remove(playerId);
+        WELCOME_QUEST_INSTANCE_IDS.remove(playerId);
     }
 }

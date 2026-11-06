@@ -2,6 +2,7 @@ package com.github.cerealklla.arryval.starttown;
 
 import java.util.List;
 
+import com.github.cerealklla.myssions.api.Myssions;
 import com.github.cerealklla.tinywyrlds.instance.WyrldExitHandler;
 
 import net.minecraft.server.level.ServerLevel;
@@ -23,6 +24,8 @@ public final class OnboardingExitHandler implements WyrldExitHandler {
         if (!PendingOnboarding.isAwaitingPick(player.getUUID())) {
             return false;
         }
+        PendingOnboarding.getWelcomeQuestInstanceId(player.getUUID())
+                .ifPresent(instanceId -> Myssions.completeMilestone(player, instanceId, "reach_portal"));
         ServerLevel overworld = ((ServerLevel) player.level()).getServer().overworld();
         List<StartingSettlementResolver.Candidate> candidates = StartingSettlementResolver.findStartingCandidates(overworld, 8);
         PendingOnboarding.cacheCandidates(player.getUUID(), candidates);

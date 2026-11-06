@@ -9,7 +9,9 @@ import com.github.cerealklla.arryval.starttown.PendingOnboarding;
 import com.github.cerealklla.arryval.starttown.SetStartingSettlementPayload;
 import com.github.cerealklla.arryval.starttown.StartingSettlementResolver;
 import com.github.cerealklla.arryval.tutorial.TutorialGuideEntity;
+import com.github.cerealklla.arryval.tutorial.TutorialQuests;
 import com.github.cerealklla.lyfe.api.Lyfe;
+import com.github.cerealklla.myssions.api.Myssions;
 import com.github.cerealklla.settlemynts.api.Settlemynts;
 import com.github.cerealklla.tinywyrlds.api.TinyWyrlds;
 
@@ -46,6 +48,7 @@ public class ArryvalMod {
 
     private void commonSetup(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
         LOGGER.info("Arryval common setup");
+        TutorialQuests.registerAll();
     }
 
     private void registerAttributes(EntityAttributeCreationEvent event) {
@@ -84,5 +87,11 @@ public class ArryvalMod {
         player.teleportTo(overworld, chosen.anchorPos().getX() + 0.5, chosen.anchorPos().getY(), chosen.anchorPos().getZ() + 0.5,
                 java.util.Set.of(), player.getYRot(), player.getXRot(), true);
         player.sendSystemMessage(Component.literal("Welcome to " + chosen.name() + "! Your Recallcinite Totem is bound here."));
+
+        // QuestChain follow-up ("Finding Your Footing") -- only completes if the player actually
+        // accepted it from the Quest Log's "Available" section first; a no-op otherwise (see
+        // Myssions#findInProgressInstanceId's own doc).
+        Myssions.findInProgressInstanceId(player, TutorialQuests.FOOTING_QUEST_ID)
+                .ifPresent(instanceId -> Myssions.completeMilestone(player, instanceId, "settle_in"));
     }
 }

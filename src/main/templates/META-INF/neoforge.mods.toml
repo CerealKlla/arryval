@@ -77,3 +77,11 @@ world origin.
     reason="The tutorial guide is a real conversational NPC through Audyble's own pipeline."
     ordering="AFTER"
     side="BOTH"
+
+# Myssions -- the tutorial assigns a real quest with gameplay-teaching milestones.
+[[dependencies.${mod_id}]]
+    modId="myssions"
+    type="required"
+    reason="The tutorial assigns a real quest with gameplay-teaching milestones."
+    ordering="AFTER"
+    side="BOTH"
