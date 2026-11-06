@@ -151,14 +151,15 @@ public class TutorialGuideEntity extends Villager {
         Audyble.speakScriptedLine(player, this, "Nice work. Here, take this -- go chop down that tree over there.");
     }
 
-    /** Called by {@code TutorialChopListener} when the tracked player breaks a real log nearby -- advances past the last gated stage into free conversation. */
-    public void onPlayerChoppedLog(ServerPlayer player) {
+    /** Called by {@code TutorialChopListener} when the tracked player right-clicks a log with an axe nearby -- advances past the last gated stage into free conversation. @return true if this guide actually claimed it (so the listener knows whether to consume the interaction). */
+    public boolean onPlayerChoppedLog(ServerPlayer player) {
         if (stage != Stage.AWAITING_CHOP_TREE || !player.getUUID().equals(trackedPlayerId)) {
-            return;
+            return false;
         }
         stage = Stage.FREE_CONVERSATION;
         Audyble.speakScriptedLine(player, this,
                 "There you go. Press K again and check your Skills tab -- that's where you'll see the experience you just earned.");
+        return true;
     }
 
     /** Registered once as an {@code api.Audyble} reply interceptor -- see this class's own doc for why only {@code AWAITING_MIC_CHECK} is gated. */
