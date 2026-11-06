@@ -29,8 +29,11 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
  * <p>Requires a one-time admin setup on the server, not built as code here (see this project's own
  * CLAUDE.md "prefer a one-time fix over permanent code" convention): {@code /tinywyrlds recipe
  * create WelcomeTutorial 0 0}, {@code /tinywyrlds recipe addfriendly WelcomeTutorial
- * arryval:tutorial_guide 1}, and whatever {@code /tinywyrlds recipe addloot} commands populate the
- * captured Entrance's one "common loot" marker.
+ * arryval:tutorial_guide 1}, whatever {@code /tinywyrlds recipe addloot} commands populate the
+ * captured Entrance's one "common loot" marker, and critically {@code /tinywyrlds recipe
+ * setentrance WelcomeTutorial WelcomeTutorial1} -- without that last one, generation picks
+ * uniformly at random among EVERY saved ENTRANCE WyrldPrint, not just this one (real bug found
+ * live, 2026-11-06 -- see TinyWyrlds' own {@code generate.OneOffGenerator#planPlacements} doc).
  */
 public final class FirstLoginListener {
 
