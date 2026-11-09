@@ -50,6 +50,7 @@ public class ArryvalMod {
         NeoForge.EVENT_BUS.register(new FirstLoginListener());
         NeoForge.EVENT_BUS.register(new PendingSettlementFormation());
         NeoForge.EVENT_BUS.register(new StartingSettlementBootstrap());
+        NeoForge.EVENT_BUS.register(new com.github.cerealklla.arryval.onboarding.TutorialRecipeBootstrap());
         NeoForge.EVENT_BUS.register(new com.github.cerealklla.arryval.tutorial.TutorialGuideInteractListener());
         NeoForge.EVENT_BUS.register(new com.github.cerealklla.arryval.starttown.VillagerTalkTracker());
         new com.github.cerealklla.arryval.starttown.VillageQuestTracker();
