@@ -3,7 +3,10 @@ package com.github.cerealklla.arryval.registration;
 import java.util.function.Supplier;
 
 import com.github.cerealklla.arryval.ArryvalMod;
+import com.github.cerealklla.arryval.onboarding.SettlementChosenState;
 import com.github.cerealklla.arryval.onboarding.TutorialGrantState;
+import com.github.cerealklla.arryval.starttown.FoundingLetterState;
+import com.github.cerealklla.arryval.starttown.StartingSettlementCoreState;
 
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -27,6 +30,33 @@ public final class ModAttachments {
             "tutorial_grant_state",
             () -> AttachmentType.builder(holder -> TutorialGrantState.DEFAULT)
                     .serialize(TutorialGrantState.CODEC)
+                    .copyOnDeath()
+                    .build()
+    );
+
+    /** See {@link SettlementChosenState}'s own doc. */
+    public static final Supplier<AttachmentType<SettlementChosenState>> SETTLEMENT_CHOSEN_STATE = ATTACHMENT_TYPES.register(
+            "settlement_chosen_state",
+            () -> AttachmentType.builder(holder -> SettlementChosenState.DEFAULT)
+                    .serialize(SettlementChosenState.CODEC)
+                    .copyOnDeath()
+                    .build()
+    );
+
+    /** See {@link StartingSettlementCoreState}'s own doc. */
+    public static final Supplier<AttachmentType<StartingSettlementCoreState>> STARTING_SETTLEMENT_CORE_STATE = ATTACHMENT_TYPES.register(
+            "starting_settlement_core_state",
+            () -> AttachmentType.builder(holder -> StartingSettlementCoreState.DEFAULT)
+                    .serialize(StartingSettlementCoreState.CODEC)
+                    .copyOnDeath()
+                    .build()
+    );
+
+    /** See {@link FoundingLetterState}'s own doc. */
+    public static final Supplier<AttachmentType<FoundingLetterState>> FOUNDING_LETTER_STATE = ATTACHMENT_TYPES.register(
+            "founding_letter_state",
+            () -> AttachmentType.builder(holder -> FoundingLetterState.DEFAULT)
+                    .serialize(FoundingLetterState.CODEC)
                     .copyOnDeath()
                     .build()
     );

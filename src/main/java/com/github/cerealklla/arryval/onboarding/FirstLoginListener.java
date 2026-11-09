@@ -4,8 +4,6 @@ import java.util.UUID;
 
 import com.github.cerealklla.arryval.registration.ModAttachments;
 import com.github.cerealklla.arryval.starttown.PendingOnboarding;
-import com.github.cerealklla.arryval.tutorial.TutorialQuests;
-import com.github.cerealklla.myssions.api.Myssions;
 import com.github.cerealklla.tinywyrlds.api.TinyWyrlds;
 
 import net.minecraft.server.level.ServerLevel;
@@ -49,14 +47,28 @@ public final class FirstLoginListener {
         }
         TutorialGrantState state = player.getData(ModAttachments.TUTORIAL_GRANT_STATE);
         if (state.granted()) {
+            // Not this player's true first login -- but if they haven't actually picked a starting
+            // settlement yet, re-mark them as awaiting a pick every time they log back in. Real bug,
+            // found live 2026-11-06: PendingOnboarding's own "awaiting pick" flag is deliberately
+            // in-memory (see its own doc), and used to be set ONLY here, in the once-ever first-login
+            // branch below -- so any server/client restart after that one moment silently broke the
+            // exit-portal picker for the rest of that account's life, even mid-tutorial. This check
+            // makes it survive any number of restarts instead.
+            if (!player.getData(ModAttachments.SETTLEMENT_CHOSEN_STATE).chosen()) {
+                PendingOnboarding.markAwaitingPick(serverPlayer.getUUID());
+            }
             return;
         }
         player.setData(ModAttachments.TUTORIAL_GRANT_STATE, new TutorialGrantState(true));
 
         PendingOnboarding.markAwaitingPick(serverPlayer.getUUID());
-        Myssions.assignQuest(serverPlayer, TutorialQuests.WELCOME_QUEST_ID)
-                .ifPresent(instanceId -> PendingOnboarding.setWelcomeQuestInstanceId(serverPlayer.getUUID(), instanceId));
+        // Request #5, 2026-11-06, corrected same day: the Welcome quest is no longer offered here at
+        // all -- explicit user correction, "it should only offer the quest after the mic is
+        // configured or confirmed not available." It's now offered from TutorialGuideEntity#
+        // handleIntercept, the instant the mic-check exchange resolves (see that method's own doc).
         ServerLevel level = (ServerLevel) serverPlayer.level();
-        TinyWyrlds.spawnEntrance(level, serverPlayer.blockPosition(), UUID.randomUUID(), TUTORIAL_RECIPE_NAME, serverPlayer.getUUID());
+        UUID entranceId = UUID.randomUUID();
+        PendingOnboarding.setTutorialEntranceId(serverPlayer.getUUID(), entranceId);
+        TinyWyrlds.spawnEntrance(level, serverPlayer.blockPosition(), entranceId, TUTORIAL_RECIPE_NAME, serverPlayer.getUUID());
     }
 }

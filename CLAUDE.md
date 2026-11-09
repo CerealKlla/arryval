@@ -57,4 +57,12 @@ and teleports the player there for real. `./gradlew build` green across the whol
 **Not yet live-tested at all** — needs the one-time Production setup commands run first (see
 decisions.md's "Pending" section) before any real playtest is even possible.
 
+**Quest chain extended, new mod dependencies added, 2026-11-08** (see
+[context/decisions.md](context/decisions.md)) — a third chain quest, "Lending a Hand" (do 10
+quests for your starting village, tracked via `starttown.VillageQuestTracker`), and
+`starttown.FoundingLetterListener` (the mayor's letter, sent via Coryspondance, once a player ever
+reaches Friendly standing with a natural settlement — see the new **Terrytories** mod's own
+CLAUDE.md). Arryval now also requires Terrytories and Coryspondance. `./gradlew build` green,
+whole-suite (15 mods) rebuild green. **Not yet live-tested.**
+
 See [context/classes/](context/classes/) for per-class reference, once there is one.

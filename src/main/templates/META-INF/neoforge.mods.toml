@@ -85,3 +85,20 @@ world origin.
     reason="The tutorial assigns a real quest with gameplay-teaching milestones."
     ordering="AFTER"
     side="BOTH"
+
+# Terrytories -- fires the generic ReputationHooks this mod subscribes to for the "first time ever
+# Friendly with a natural settlement" mayor's-letter rule.
+[[dependencies.${mod_id}]]
+    modId="terrytories"
+    type="required"
+    reason="Fires the reputation standing-changed hook behind the mayor's-letter rule."
+    ordering="AFTER"
+    side="BOTH"
+
+# Coryspondance -- sends the mayor's letter through its mail API.
+[[dependencies.${mod_id}]]
+    modId="coryspondance"
+    type="required"
+    reason="Sends the mayor's letter through its mail API."
+    ordering="AFTER"
+    side="BOTH"

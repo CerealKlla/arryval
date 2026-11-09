@@ -70,11 +70,9 @@ public final class SelectStartingSettlementScreen extends Screen {
         }
         OpenStartingSettlementPickerPayload.Entry entry = data.entries().get(index);
         String name = entry.name();
-        String distance = Math.round(entry.distanceBlocks()) + " blocks from the center of the world";
         String position = "(" + (index + 1) + " / " + data.entries().size() + ")";
         graphics.text(font, name, centerX - font.width(name) / 2, y + 4, 0xFFFFFFFF);
-        graphics.text(font, distance, centerX - font.width(distance) / 2, y + 16, 0xFFAAAAAA);
-        graphics.text(font, position, centerX - font.width(position) / 2, y + 28, 0xFFAAAAAA);
+        graphics.text(font, position, centerX - font.width(position) / 2, y + 16, 0xFFAAAAAA);
     }
 
     @Override

@@ -123,6 +123,17 @@ dependencies {
     testCompileOnly files("../Myssions/build/libs/myssions-${myssions_version}.jar")
     testRuntimeOnly files("../Myssions/build/libs/myssions-${myssions_version}.jar")
 
+    // Terrytories is required -- fires the generic ReputationHooks this mod subscribes to for the
+    // "first time ever Friendly with a natural settlement" mayor's-letter rule.
+    compileOnly files("../Terrytories/build/libs/terrytories-${terrytories_version}.jar")
+    testCompileOnly files("../Terrytories/build/libs/terrytories-${terrytories_version}.jar")
+    testRuntimeOnly files("../Terrytories/build/libs/terrytories-${terrytories_version}.jar")
+
+    // Coryspondance is required -- sends the mayor's letter through its mail API.
+    compileOnly files("../Coryspondance/build/libs/coryspondance-${coryspondance_version}.jar")
+    testCompileOnly files("../Coryspondance/build/libs/coryspondance-${coryspondance_version}.jar")
+    testRuntimeOnly files("../Coryspondance/build/libs/coryspondance-${coryspondance_version}.jar")
+
     // Plain JUnit 5 for pure logic tests (no live server/registry needed, so ModDevGradle's
     // neoForge { unitTest {} } FML-bootstrap machinery isn't required for these).
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'

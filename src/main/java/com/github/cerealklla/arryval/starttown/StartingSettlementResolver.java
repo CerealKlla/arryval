@@ -1,81 +1,76 @@
 package com.github.cerealklla.arryval.starttown;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
-import com.github.cerealklla.cartographyr.api.Cartography;
-import com.github.cerealklla.cartographyr.geo.Classification;
-import com.github.cerealklla.cartographyr.geo.GeographicEntity;
-import com.github.cerealklla.cartographyr.geo.Layer;
 import com.github.cerealklla.settlemynts.api.Settlemynts;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 
 /**
- * Resolves up to {@code desiredCount} real, startable settlements nearest world origin -- the
- * starting-town picker's candidate list. Deliberately resolves fresh every time it's called (once
- * per new player reaching the tutorial's exit portal, not a recurring cost) rather than caching,
- * since which settlements exist/have a vacant plot genuinely changes over the life of the server.
+ * Checks each of {@link StartingSettlementStore}'s cached starting-settlement locations for a real,
+ * currently-available bind location -- the starting-town picker's candidate list. The locations
+ * themselves are discovered exactly once per server (see {@link StartingSettlementStore}'s own doc,
+ * explicit user correction 2026-11-06: no reason to re-run that discovery on every player's own
+ * approach); only this per-call readiness check is genuinely live, since whether a given location's
+ * settlement/plot has actually finished forming changes over the life of the server.
  *
- * <p>Queries Cartographyr's persistent registry first (chunk-independent -- a player-founded
- * settlement is registered the instant its claim flag is placed, and {@code
- * SettlementPrediction}-predicted natural villages are registered from pure seed math, neither
- * needing a loaded chunk), then, nearest-first, force-loads each candidate's own chunk and tries to
- * resolve a real, currently-reachable Settlemynts settlement with at least one vacant plot --
- * skipping (not failing) any candidate that's still only a placeholder with no real core entity, or
- * has no vacant plot at all. This is the deliberate, graceful handling for "a player may never have
- * actually visited one of the 8 nearest settlements to generate it yet" -- explicitly accepted as a
- * real possibility rather than something to force-generate around.
+ * <p><b>Real, explicit user correction, 2026-11-06</b>: an earlier version of this class only ever
+ * listed an already-{@code REALIZED}, already-founded settlement -- "No, because they are supposed
+ * to automatically generate, NPC settlements are perfectly viable options for a player to select.
+ * You are supposed to be using the world seed to know where settlements WILL generate already." A
+ * never-visited vanilla village the world seed guarantees will generate is a real, pickable candidate
+ * too (a {@link Candidate#isReady()} {@code false} one). See {@code PendingSettlementFormation} for
+ * what actually happens once a not-yet-ready pick is confirmed -- the real settlement doesn't exist
+ * the instant this method returns, only its predicted name and position do.
+ *
+ * <p><b>No plot/ownership concept at all, confirmed with the user 2026-11-06</b> (a prior
+ * unconfirmed assumption from the original plan, corrected on direct challenge -- "at what point did
+ * I ever say anything about 'assigning the player a plot'?"): picking a town only ever binds the
+ * Recallcinite Totem to a location there and teleports the player -- it never claims a
+ * {@code PlotRecord}.
  */
 public final class StartingSettlementResolver {
 
     private StartingSettlementResolver() {
     }
 
-    public record Candidate(UUID settlementCoreId, String name, UUID plotId, BlockPos anchorPos, double distanceBlocks) {
+    /**
+     * {@code bindPos} is empty for a seed-predicted-but-not-yet-founded village (or a founded one
+     * with no plot to bind to yet) -- {@link #isReady()} is {@code false} in that case, and a caller
+     * should teleport to {@link #predictedPos()} and wait for the real settlement to form (see
+     * {@code PendingSettlementFormation}) rather than binding the Totem there immediately.
+     */
+    public record Candidate(String name, BlockPos predictedPos, Optional<BlockPos> bindPos) {
+        public boolean isReady() {
+            return bindPos.isPresent();
+        }
     }
 
-    /** Generous radius around each Cartographyr-known position to search for the real Settlemynts core -- a settlement's own geo-registered center and its real GhostTownHallCoreEntity are never far apart. */
-    private static final double CORE_SEARCH_RADIUS_BLOCKS = 128.0;
+    /** Generous radius around each cached location to search for a real bind location -- a settlement's own geo-registered center and its real plots are never far apart, player-founded or natural. */
+    private static final double BIND_SEARCH_RADIUS_BLOCKS = 128.0;
 
-    public static List<Candidate> findStartingCandidates(ServerLevel level, int desiredCount) {
-        List<GeographicEntity> known = new ArrayList<>(Cartography.findEntities(level, Classification.CONSTRUCTED, Layer.SETTLEMENT_ID));
-        known.sort(Comparator.comparingDouble(StartingSettlementResolver::distanceSqFromOrigin));
-
+    /**
+     * {@code level.getChunk(...)} here is safe and cheap, not the earlier stall -- real live
+     * follow-up, 2026-11-06: "why are you not force loading all 8 settlements from the moment the
+     * first player logs into the server?" {@link StartingSettlementStore}'s own one-time discovery
+     * now force-loads (and so generates/saves to disk) every location's chunk immediately at server
+     * start, well before any player could possibly reach the portal -- so by the time this runs,
+     * each chunk is either still resident in memory, or a cheap on-disk read of already-generated
+     * terrain, never real world-gen from scratch. The original 4-second stall was real world-gen
+     * happening here, on the main thread, for up to 8 never-before-touched locations, every single
+     * approach -- moving the one real generation cost to server start instead fixes that at the root.
+     */
+    public static List<Candidate> findStartingCandidates(ServerLevel level) {
         List<Candidate> result = new ArrayList<>();
-        for (GeographicEntity entity : known) {
-            if (result.size() >= desiredCount) {
-                break;
-            }
-            int x = entity.geometry().centerBlockX();
-            int z = entity.geometry().centerBlockZ();
-            BlockPos geoPos = new BlockPos(x, level.getSeaLevel(), z);
-            level.getChunk(x >> 4, z >> 4); // synchronous force-load -- see this class's own doc.
-
-            UUID settlementCoreId = Settlemynts.findNearbySettlements(level, geoPos, CORE_SEARCH_RADIUS_BLOCKS).stream()
-                    .min(Comparator.comparingDouble(Settlemynts.SettlementHandle::distanceBlocks))
-                    .map(Settlemynts.SettlementHandle::settlementCoreId)
-                    .orElse(null);
-            if (settlementCoreId == null) {
-                continue; // Placeholder-only (never generated/founded for real) -- skip.
-            }
-            String name = Settlemynts.getSettlementName(level, settlementCoreId).orElse(entity.name().orElse(""));
-            Settlemynts.VacantPlotHandle plot = Settlemynts.findVacantStartingPlot(level, settlementCoreId).orElse(null);
-            if (plot == null) {
-                continue; // No vacant plot -- skip, same graceful handling.
-            }
-            double distance = Math.sqrt(distanceSqFromOrigin(entity));
-            result.add(new Candidate(settlementCoreId, name, plot.plotId(), plot.anchorPos(), distance));
+        for (StartingSettlementEntry entry : StartingSettlementStore.all()) {
+            BlockPos geoPos = new BlockPos(entry.x(), level.getSeaLevel(), entry.z());
+            level.getChunk(entry.x() >> 4, entry.z() >> 4);
+            Optional<BlockPos> bindPos = Settlemynts.findStartingBindLocation(level, geoPos, BIND_SEARCH_RADIUS_BLOCKS);
+            result.add(new Candidate(entry.name(), geoPos, bindPos));
         }
         return result;
-    }
-
-    private static double distanceSqFromOrigin(GeographicEntity entity) {
-        double x = entity.geometry().centerBlockX();
-        double z = entity.geometry().centerBlockZ();
-        return x * x + z * z;
     }
 }

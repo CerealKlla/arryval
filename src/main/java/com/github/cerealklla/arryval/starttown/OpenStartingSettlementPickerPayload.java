@@ -12,15 +12,21 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
-/** Server-to-client: the resolved starting-settlement candidates, name + distance only (the real ids stay server-side -- the client only ever reports back a plain index). */
+/**
+ * Server-to-client: the resolved starting-settlement candidates, name only (the real ids/positions
+ * stay server-side -- the client only ever reports back a plain index). Deliberately never carries
+ * distance or any other real-world location info -- explicit user correction, 2026-11-06: "Don't
+ * give the player information about these locations, other than breaking immersion there's literally
+ * no reason for it." Used to carry {@code distanceBlocks}, shown on the picker screen; removed
+ * entirely rather than just hidden client-side.
+ */
 public record OpenStartingSettlementPickerPayload(List<Entry> entries) implements CustomPacketPayload {
 
-    public record Entry(String name, double distanceBlocks) {
+    public record Entry(String name) {
     }
 
     private static final StreamCodec<ByteBuf, Entry> ENTRY_CODEC = StreamCodec.composite(
             ByteBufCodecs.STRING_UTF8, Entry::name,
-            ByteBufCodecs.DOUBLE, Entry::distanceBlocks,
             Entry::new);
 
     public static final Type<OpenStartingSettlementPickerPayload> TYPE =
