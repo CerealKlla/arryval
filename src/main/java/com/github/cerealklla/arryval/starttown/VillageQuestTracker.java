@@ -43,6 +43,12 @@ public final class VillageQuestTracker {
                 .flatMap(plotId -> Settlemynts.findSettlementCoreIdForPlot(level, plotId))
                 .filter(home.get()::equals)
                 .ifPresent(ignored -> Myssions.findInProgressInstanceId(player, TutorialQuests.LENDING_A_HAND_QUEST_ID)
-                        .ifPresent(lendingInstanceId -> Myssions.reportMilestoneProgress(player, lendingInstanceId, "help_your_village", 1)));
+                        .ifPresent(lendingInstanceId -> {
+                            Myssions.reportMilestoneProgress(player, lendingInstanceId, "help_your_village", 1);
+                            // Same gap as Finding Your Footing (see VillagerTalkTracker's own doc,
+                            // 2026-11-09 report) -- this quest is chain-unlocked automatically too,
+                            // no real NPC to turn it in to. Safe to call unconditionally.
+                            Myssions.tryCompleteQuest(player, lendingInstanceId);
+                        }));
     }
 }

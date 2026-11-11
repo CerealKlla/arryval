@@ -10,6 +10,7 @@ import java.util.Optional;
 import com.github.cerealklla.cartographyr.api.Cartography;
 import com.github.cerealklla.cartographyr.geo.Classification;
 import com.github.cerealklla.cartographyr.geo.EntityId;
+import com.github.cerealklla.cartographyr.geo.Geometry;
 import com.github.cerealklla.cartographyr.geo.GeographicEntity;
 import com.github.cerealklla.cartographyr.geo.Layer;
 import com.github.cerealklla.cartographyr.geo.LifecycleState;
@@ -62,8 +63,14 @@ public final class StartingSettlementStore {
     /** Set just before {@link PersistedServerStore#loadOrGenerate} so the anonymous store's own {@code generate()} (which takes no parameters) can still reach the real level -- cleared immediately after, only ever non-null mid-call. */
     private static ServerLevel pendingOverworld;
 
+    // worldScoped=true -- real live bug, found 2026-11-09: this store's own content (settlements
+    // nearest THIS world's origin, for THIS world's seed) was being cached at the game-instance
+    // level (PersistedServerStore's own original default), so every later singleplayer world
+    // created in the same install kept reusing the first world's discovered coordinates -- a
+    // completely different, wrong world's settlements, for a world with a different seed entirely.
+    // See PersistedServerStore's own doc for the full account.
     private static final PersistedServerStore<Integer, StartingSettlementEntry> STORE =
-            new PersistedServerStore<>("arryval_starting_settlements.json", StartingSettlementEntry.CODEC, StartingSettlementEntry::index) {
+            new PersistedServerStore<>("arryval_starting_settlements.json", StartingSettlementEntry.CODEC, StartingSettlementEntry::index, true) {
                 @Override
                 protected Map<Integer, StartingSettlementEntry> generate() {
                     return discover(pendingOverworld, DESIRED_CANDIDATE_COUNT);
@@ -142,8 +149,17 @@ public final class StartingSettlementStore {
             // the seed-predicted grid cell -- so the cached entry pointed at the predicted point, not
             // the real village, even on a successful materialization. Re-reading the now-REALIZED
             // entity's own geometry fixes this for good.
-            int x = realized.get().geometry().centerBlockX();
-            int z = realized.get().geometry().centerBlockZ();
+            //
+            // Third real bug, found live 2026-11-09: even the REALIZED entity's own coarse
+            // Geometry#centerBlockX/Z (a bounding-box midpoint, not a true "inside the shape"
+            // guarantee -- see that method's own doc) can land in real, genuinely empty space for an
+            // irregular/multi-cluster village -- a real report: "dropped in a pond in the middle of
+            // the woods, no settlement anywhere nearby," confirmed not a loading delay.
+            // Geometry#nearestContainedPoint spirals out from that same coarse center until it finds
+            // a point the shape's own contains() check actually accepts.
+            Geometry.Point contained = realized.get().geometry().nearestContainedPoint(MAX_CONTAINED_POINT_SEARCH_RADIUS_BLOCKS);
+            int x = contained.x();
+            int z = contained.z();
             result.put(index, new StartingSettlementEntry(index, entity.name().orElse(""), x, z));
             index++;
         }
@@ -154,6 +170,9 @@ public final class StartingSettlementStore {
     private static final int INITIAL_LOAD_RADIUS_CHUNKS = 1;
     /** Widened retry radius if the first pass didn't materialize a real structure -- covers a sprawling village whose start piece sits well off from its own visual center. */
     private static final int WIDENED_LOAD_RADIUS_CHUNKS = 4;
+
+    /** How far {@link Geometry#nearestContainedPoint} is allowed to spiral out from a settlement's own coarse bounding-box center while looking for a point actually inside its footprint -- generous enough for any real settlement's own widest cluster gap. */
+    private static final int MAX_CONTAINED_POINT_SEARCH_RADIUS_BLOCKS = 300;
 
     /**
      * Force-loads a growing neighborhood of chunks around {@code (x, z)} until the entity at {@code

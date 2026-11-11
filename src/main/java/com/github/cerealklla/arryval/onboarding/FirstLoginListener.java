@@ -1,14 +1,18 @@
 package com.github.cerealklla.arryval.onboarding;
 
+import java.util.Set;
 import java.util.UUID;
 
+import com.github.cerealklla.arryval.config.ArryvalConfig;
 import com.github.cerealklla.arryval.registration.ModAttachments;
 import com.github.cerealklla.arryval.starttown.PendingOnboarding;
 import com.github.cerealklla.tinywyrlds.api.TinyWyrlds;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.storage.LevelData;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
@@ -26,14 +30,18 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
  * fresh, non-shared {@code WyrldInstanceRecord} -- see TinyWyrlds' own {@code api.TinyWyrlds}
  * class doc for the full research behind this.
  *
- * <p>Requires a one-time admin setup on the server, not built as code here (see this project's own
- * CLAUDE.md "prefer a one-time fix over permanent code" convention): {@code /tinywyrlds recipe
- * create WelcomeTutorial 0 0}, {@code /tinywyrlds recipe addfriendly WelcomeTutorial
- * arryval:tutorial_guide 1}, whatever {@code /tinywyrlds recipe addloot} commands populate the
- * captured Entrance's one "common loot" marker, and critically {@code /tinywyrlds recipe
- * setentrance WelcomeTutorial WelcomeTutorial1} -- without that last one, generation picks
- * uniformly at random among EVERY saved ENTRANCE WyrldPrint, not just this one (real bug found
- * live, 2026-11-06 -- see TinyWyrlds' own {@code generate.OneOffGenerator#planPlacements} doc).
+ * <p><b>Stale as of 2026-11-11, corrected</b>: this used to require a one-time admin setup on the
+ * server for the recipe itself ({@code /tinywyrlds recipe create/addfriendly/setentrance}) -- that
+ * entire category of "someone has to run an admin command before this works" is now gone.
+ * {@code onboarding.TutorialRecipeBootstrap} creates/repairs the {@code WelcomeTutorial} recipe
+ * (including pinning it to {@link com.github.cerealklla.tinywyrlds.wyrldprint.recipe.WyrldRecipe
+ * #useLatestTutorialPrint()} rather than a fixed entrance name) on every single server boot, no
+ * admin action needed, ever -- see its own doc and {@code TinyWyrlds#ensureRecipeExists}. The only
+ * two things still outside code: the tutorial room itself needs to be captured and saved as a
+ * {@code TUTORIAL}-type WyrldPrint (whatever name) at least once per server -- real level-design
+ * content, which genuinely can't be generated from nothing -- and the starter-loot item list for
+ * its "common loot" marker is still an open, undecided design question (see Arryval's own
+ * decisions.md).
  */
 public final class FirstLoginListener {
 
@@ -60,6 +68,25 @@ public final class FirstLoginListener {
             return;
         }
         player.setData(ModAttachments.TUTORIAL_GRANT_STATE, new TutorialGrantState(true));
+
+        if (ArryvalConfig.SKIP_ONBOARDING.get()) {
+            // Dev convenience (see ArryvalConfig's own doc): skip the private tutorial Wyrld, the
+            // guide NPC, and the starting-settlement picker entirely, and just drop the player at the
+            // world's own spawn point. Also mark SETTLEMENT_CHOSEN_STATE so the granted()-branch
+            // re-mark-every-login fix above (see its own comment) never re-flags this player as
+            // awaiting a pick on a later login either -- there is no picker coming for them to await.
+            player.setData(ModAttachments.SETTLEMENT_CHOSEN_STATE, new SettlementChosenState(true));
+            ServerLevel overworld = ((ServerLevel) serverPlayer.level()).getServer().overworld();
+            LevelData.RespawnData respawn = overworld.getRespawnData();
+            ServerLevel spawnLevel = overworld.getServer().getLevel(respawn.dimension());
+            if (spawnLevel == null) {
+                spawnLevel = overworld;
+            }
+            BlockPos spawnPos = respawn.pos();
+            serverPlayer.teleportTo(spawnLevel, spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5,
+                    Set.of(), respawn.yaw(), respawn.pitch(), true);
+            return;
+        }
 
         PendingOnboarding.markAwaitingPick(serverPlayer.getUUID());
         // Request #5, 2026-11-06, corrected same day: the Welcome quest is no longer offered here at

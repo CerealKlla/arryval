@@ -1,5 +1,6 @@
 package com.github.cerealklla.arryval;
 
+import com.github.cerealklla.arryval.config.ArryvalConfig;
 import com.github.cerealklla.arryval.onboarding.FirstLoginListener;
 import com.github.cerealklla.arryval.registration.ModAttachments;
 import com.github.cerealklla.arryval.registration.ModEntities;
@@ -27,6 +28,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -40,6 +42,8 @@ public class ArryvalMod {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ArryvalMod(IEventBus modEventBus, ModContainer modContainer) {
+        modContainer.registerConfig(ModConfig.Type.SERVER, ArryvalConfig.SPEC);
+
         ModAttachments.ATTACHMENT_TYPES.register(modEventBus);
         ModEntities.ENTITIES.register(modEventBus);
 
@@ -52,7 +56,7 @@ public class ArryvalMod {
         NeoForge.EVENT_BUS.register(new StartingSettlementBootstrap());
         NeoForge.EVENT_BUS.register(new com.github.cerealklla.arryval.onboarding.TutorialRecipeBootstrap());
         NeoForge.EVENT_BUS.register(new com.github.cerealklla.arryval.tutorial.TutorialGuideInteractListener());
-        NeoForge.EVENT_BUS.register(new com.github.cerealklla.arryval.starttown.VillagerTalkTracker());
+        new com.github.cerealklla.arryval.starttown.VillagerTalkTracker(); // registers its own hook, not an event-bus listener
         new com.github.cerealklla.arryval.starttown.VillageQuestTracker();
         new com.github.cerealklla.arryval.starttown.FoundingLetterListener();
         OnboardingExitHandler onboardingExitHandler = new OnboardingExitHandler();
