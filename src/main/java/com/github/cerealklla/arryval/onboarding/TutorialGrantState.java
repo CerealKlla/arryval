@@ -5,8 +5,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 /**
  * Per-player flag: has this player ever had the welcome tutorial triggered? Server-only
- * bookkeeping -- not synced, nothing client-side reads it, same convention as Kyt's own {@code
- * welcome.WelcomeGrantState}.
+ * bookkeeping -- not synced, nothing client-side reads it, same convention Kyt's own now-removed
+ * {@code welcome.WelcomeGrantState} once followed.
  */
 public record TutorialGrantState(boolean granted) {
 

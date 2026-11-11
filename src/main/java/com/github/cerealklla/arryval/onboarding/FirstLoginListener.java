@@ -20,28 +20,38 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
  * Places a brand-new player into their own private "WelcomeTutorial" Wyrld on their true first
  * login ever -- never again on a later login or after death (see {@code
  * ModAttachments#TUTORIAL_GRANT_STATE}'s own {@code copyOnDeath()} note for why death specifically
- * needed care, same pattern Kyt's own {@code welcome.WelcomeListener} already established).
+ * needed care, same pattern Kyt's own now-removed {@code welcome.WelcomeListener} once established).
  *
- * <p>Spawns a fresh {@code WyrldEntranceEntity} directly on the player's own position with a
- * brand-new random {@code entranceId} -- the existing {@code WyrldEntranceProximityTicker} picks
- * it up and generates/enters on literally the next tick, with zero new TinyWyrlds plumbing needed.
- * A fresh id per player (never cached/reused) guarantees each new player gets their own private
- * generation, consistent with how {@code OneOffGenerator.generate} already always allocates a
- * fresh, non-shared {@code WyrldInstanceRecord} -- see TinyWyrlds' own {@code api.TinyWyrlds}
- * class doc for the full research behind this.
+ * <p>Calls straight into {@code api.TinyWyrlds#enterEntranceDirect} with a fresh, random {@code
+ * entranceId} -- generates (or on a later re-login, re-enters) the Wyrld and teleports the player
+ * immediately, with nothing ever placed in the world. A fresh id per player (never cached/reused)
+ * guarantees each new player gets their own private generation, consistent with how {@code
+ * OneOffGenerator.generate} already always allocates a fresh, non-shared {@code
+ * WyrldInstanceRecord} -- see TinyWyrlds' own {@code api.TinyWyrlds} class doc for the full
+ * research behind this.
  *
- * <p><b>Stale as of 2026-11-11, corrected</b>: this used to require a one-time admin setup on the
- * server for the recipe itself ({@code /tinywyrlds recipe create/addfriendly/setentrance}) -- that
- * entire category of "someone has to run an admin command before this works" is now gone.
- * {@code onboarding.TutorialRecipeBootstrap} creates/repairs the {@code WelcomeTutorial} recipe
+ * <p><b>Corrected 2026-11-11, real incident</b>: this used to spawn a permanent, invisible {@code
+ * WyrldEntranceEntity} directly on the player's own login position, relying on {@code
+ * WyrldEntranceProximityTicker} to pick it up on the next tick. That entity never despawns -- a
+ * veteran player's account (never previously flagged {@code granted()} under this newer
+ * attachment) got treated as a genuine first login mid-town, got an invisible permanent portal
+ * planted on their own plot, and then got trapped: the generated room (TinyWyrlds' own TUTORIAL
+ * print was itself mistyped as a stale {@code ENTRANCE} at the time, see TinyWyrlds' own fix) had
+ * no exit, and leaving via {@code /tinywyrlds leave} returned them to the exact spot that
+ * re-triggered it, forever. Explicit user instruction: "there is no scenario where a permanent
+ * tutorial entrance makes sense, especially an invisible one... Manually teleport the player into
+ * the tutorial." No entity is ever spawned for this anymore.
+ *
+ * <p>{@code onboarding.TutorialRecipeBootstrap} creates/repairs the {@code WelcomeTutorial} recipe
  * (including pinning it to {@link com.github.cerealklla.tinywyrlds.wyrldprint.recipe.WyrldRecipe
  * #useLatestTutorialPrint()} rather than a fixed entrance name) on every single server boot, no
- * admin action needed, ever -- see its own doc and {@code TinyWyrlds#ensureRecipeExists}. The only
- * two things still outside code: the tutorial room itself needs to be captured and saved as a
- * {@code TUTORIAL}-type WyrldPrint (whatever name) at least once per server -- real level-design
- * content, which genuinely can't be generated from nothing -- and the starter-loot item list for
- * its "common loot" marker is still an open, undecided design question (see Arryval's own
- * decisions.md).
+ * admin action needed, ever -- see its own doc and {@code TinyWyrlds#ensureRecipeExists}. If no
+ * real {@code TUTORIAL}-type WyrldPrint has ever been saved, generation now refuses outright
+ * (TinyWyrlds' own fix, same incident) rather than substituting an unrelated, possibly exit-less
+ * dungeon -- {@link #onPlayerLoggedIn} treats that refusal exactly like {@code SKIP_ONBOARDING}
+ * and places the player at the world's own spawn point instead of leaving them stranded mid-call.
+ * The starter-loot item list for the room's "common loot" marker is still an open, undecided
+ * design question (see Arryval's own decisions.md).
  */
 public final class FirstLoginListener {
 
@@ -76,15 +86,7 @@ public final class FirstLoginListener {
             // re-mark-every-login fix above (see its own comment) never re-flags this player as
             // awaiting a pick on a later login either -- there is no picker coming for them to await.
             player.setData(ModAttachments.SETTLEMENT_CHOSEN_STATE, new SettlementChosenState(true));
-            ServerLevel overworld = ((ServerLevel) serverPlayer.level()).getServer().overworld();
-            LevelData.RespawnData respawn = overworld.getRespawnData();
-            ServerLevel spawnLevel = overworld.getServer().getLevel(respawn.dimension());
-            if (spawnLevel == null) {
-                spawnLevel = overworld;
-            }
-            BlockPos spawnPos = respawn.pos();
-            serverPlayer.teleportTo(spawnLevel, spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5,
-                    Set.of(), respawn.yaw(), respawn.pitch(), true);
+            teleportToWorldSpawn(serverPlayer);
             return;
         }
 
@@ -93,9 +95,25 @@ public final class FirstLoginListener {
         // all -- explicit user correction, "it should only offer the quest after the mic is
         // configured or confirmed not available." It's now offered from TutorialGuideEntity#
         // handleIntercept, the instant the mic-check exchange resolves (see that method's own doc).
-        ServerLevel level = (ServerLevel) serverPlayer.level();
         UUID entranceId = UUID.randomUUID();
         PendingOnboarding.setTutorialEntranceId(serverPlayer.getUUID(), entranceId);
-        TinyWyrlds.spawnEntrance(level, serverPlayer.blockPosition(), entranceId, TUTORIAL_RECIPE_NAME, serverPlayer.getUUID());
+        if (!TinyWyrlds.enterEntranceDirect(serverPlayer, entranceId, TUTORIAL_RECIPE_NAME)) {
+            // No real TUTORIAL WyrldPrint exists yet (or Wyrld Space itself isn't up) -- never leave
+            // a player stranded mid-login over missing content. They still go through the normal
+            // starttown picker (already marked above), just without the tutorial room itself.
+            teleportToWorldSpawn(serverPlayer);
+        }
+    }
+
+    private void teleportToWorldSpawn(ServerPlayer serverPlayer) {
+        ServerLevel overworld = ((ServerLevel) serverPlayer.level()).getServer().overworld();
+        LevelData.RespawnData respawn = overworld.getRespawnData();
+        ServerLevel spawnLevel = overworld.getServer().getLevel(respawn.dimension());
+        if (spawnLevel == null) {
+            spawnLevel = overworld;
+        }
+        BlockPos spawnPos = respawn.pos();
+        serverPlayer.teleportTo(spawnLevel, spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5,
+                Set.of(), respawn.yaw(), respawn.pitch(), true);
     }
 }

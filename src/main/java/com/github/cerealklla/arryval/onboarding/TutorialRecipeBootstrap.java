@@ -1,6 +1,7 @@
 package com.github.cerealklla.arryval.onboarding;
 
 import com.github.cerealklla.arryval.registration.ModEntities;
+import com.github.cerealklla.nuclyus.api.Nuclyus;
 import com.github.cerealklla.tinywyrlds.api.TinyWyrlds;
 
 import net.neoforged.bus.api.SubscribeEvent;
@@ -27,6 +28,16 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
  * a {@code TUTORIAL}-type WyrldPrint (any name) and the next player login automatically uses
  * whichever one was captured most recently -- see {@code tinywyrlds.wyrldprint.WyrldPrintType
  * #TUTORIAL}'s own doc.
+ *
+ * <p><b>Welcome book seeded here, 2026-11-11</b> -- the room's own {@code loot_spawn_common} marker
+ * now guarantees the "Kyngdoms, A History" book ({@code api.Nuclyus#createWelcomeBook}) instead of
+ * nothing, replacing the old auto-granted "Welcome" Kyt entirely (explicit user instruction: "move
+ * the book into the tutorial hallway chest instead of a kyt and turn that off altogether"). Built
+ * by Nuclyus, not Kyt or Arryval itself -- real content has no tie to any one mod's own classes, and
+ * Nuclyus is already a required dependency here, so this needed no new cross-mod dependency at all.
+ * Same self-healing shape as {@link TinyWyrlds#ensureRecipeExists} -- only fills the common-loot
+ * pool if it's still empty, so a server operator who later adds their own common loot to this
+ * recipe is never silently overridden.
  */
 public final class TutorialRecipeBootstrap {
 
@@ -37,5 +48,6 @@ public final class TutorialRecipeBootstrap {
                 net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(ModEntities.TUTORIAL_GUIDE.get()), 1,
                 net.minecraft.resources.Identifier.withDefaultNamespace("zombie"), 1,
                 true);
+        TinyWyrlds.ensureCommonLootExists(FirstLoginListener.TUTORIAL_RECIPE_NAME, Nuclyus.createWelcomeBook(), 1);
     }
 }
