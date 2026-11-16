@@ -33,20 +33,27 @@ public record StartingSettlementCoreState(Optional<UUID> settlementCoreId) {
 
     public static final StartingSettlementCoreState DEFAULT = new StartingSettlementCoreState(Optional.empty());
 
+    /** Generous enough to cover a bind spot sitting in a settlement's open paths/commons (never covered by any plot's own tighter polygon) without reaching into a genuinely different, nearby settlement -- see {@link #recordFor}'s own doc. */
+    private static final double SETTLEMENT_MATCH_MARGIN_BLOCKS = 32.0;
+
     /**
      * Resolves the real {@code settlementCoreId} for wherever the player's Totem just bound (via
      * {@code api.Settlemynts#findPlotAt}, which already handles both player-founded and natural
-     * villages transparently) and persists it as this player's permanent "home village," if it
-     * resolves to anything at all -- an edge-case bind location that happens to fall just outside the
-     * settlement's own registered plot polygon is tolerated silently, since a quest tracker reading
-     * this back should simply never progress rather than this blocking onboarding on a secondary
-     * feature. Called from the two real places a Totem bind actually happens: {@code
-     * ArryvalMod#confirmStartingSettlement} (an already-founded candidate) and {@code
-     * PendingSettlementFormation#finishBinding} (a not-yet-founded one, once it finally forms).
+     * villages transparently) and persists it as this player's permanent "home village." Falls back
+     * to the broader, margin-based {@code api.Settlemynts#findSettlementCoreIdNear} when the bind
+     * position doesn't land inside any specific plot's own polygon -- **real bug, found 2026-11-16**:
+     * this used to be treated as a harmless "edge case... tolerated silently," but a bind spot in a
+     * natural village's open paths/commons is common, not an edge case, and it permanently stalled
+     * "Lending a Hand" for whichever player it happened to (this attachment is never written a second
+     * time after onboarding, so a one-time miss here was forever, not just at bind time). Called from
+     * the two real places a Totem bind actually happens: {@code ArryvalMod#confirmStartingSettlement}
+     * (an already-founded candidate) and {@code PendingSettlementFormation#finishBinding} (a
+     * not-yet-founded one, once it finally forms).
      */
     public static void recordFor(ServerPlayer player, ServerLevel level, BlockPos bindPos) {
-        Settlemynts.findPlotAt(level, bindPos).ifPresent(plot ->
-                player.setData(ModAttachments.STARTING_SETTLEMENT_CORE_STATE,
-                        new StartingSettlementCoreState(Optional.of(plot.settlementCoreId()))));
+        Settlemynts.findPlotAt(level, bindPos).map(plot -> plot.settlementCoreId())
+                .or(() -> Settlemynts.findSettlementCoreIdNear(level, bindPos, SETTLEMENT_MATCH_MARGIN_BLOCKS))
+                .ifPresent(id -> player.setData(ModAttachments.STARTING_SETTLEMENT_CORE_STATE,
+                        new StartingSettlementCoreState(Optional.of(id))));
     }
 }
