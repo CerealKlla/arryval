@@ -1,6 +1,7 @@
 package com.github.cerealklla.arryval;
 
 import com.github.cerealklla.arryval.config.ArryvalConfig;
+import com.github.cerealklla.arryval.debug.DebugCommands;
 import com.github.cerealklla.arryval.onboarding.FirstLoginListener;
 import com.github.cerealklla.arryval.registration.ModAttachments;
 import com.github.cerealklla.arryval.registration.ModEntities;
@@ -30,6 +31,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import org.slf4j.Logger;
@@ -59,6 +61,7 @@ public class ArryvalMod {
         new com.github.cerealklla.arryval.starttown.VillagerTalkTracker(); // registers its own hook, not an event-bus listener
         new com.github.cerealklla.arryval.starttown.VillageQuestTracker();
         new com.github.cerealklla.arryval.starttown.FoundingLetterListener();
+        NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent event) -> DebugCommands.register(event.getDispatcher()));
         OnboardingExitHandler onboardingExitHandler = new OnboardingExitHandler();
         TinyWyrlds.registerExitHandler(onboardingExitHandler);
         NeoForge.EVENT_BUS.register(onboardingExitHandler);
