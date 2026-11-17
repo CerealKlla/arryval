@@ -39,7 +39,7 @@ public final class VillageQuestTracker {
         if (home.isEmpty()) {
             return;
         }
-        Myssions.getIssuingPlotId(instanceId)
+        Myssions.getIssuingPlotId(level.getServer(), instanceId)
                 .flatMap(plotId -> Settlemynts.findSettlementCoreIdForPlot(level, plotId))
                 .filter(home.get()::equals)
                 .ifPresent(ignored -> Myssions.findInProgressInstanceId(player, TutorialQuests.LENDING_A_HAND_QUEST_ID)
